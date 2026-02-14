@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 1 ]]; then
+  echo "Usage: voice2text <audio_file> [model] [language]" >&2
+  exit 1
+fi
+
+AUDIO_FILE="$1"
+MODEL="${2:-small}"
+LANG="${3:-ru}"
+WHISPER_BIN="/root/.openclaw/workspace/.venv-whisper/bin/whisper"
+
+if [[ ! -f "$AUDIO_FILE" ]]; then
+  echo "File not found: $AUDIO_FILE" >&2
+  exit 1
+fi
+
+if [[ ! -x "$WHISPER_BIN" ]]; then
+  echo "Whisper binary not found: $WHISPER_BIN" >&2
+  exit 1
+fi
+
+OUT_DIR="$(mktemp -d)"
+cleanup() { rm -rf "$OUT_DIR"; }
+trap cleanup EXIT
+
+"$WHISPER_BIN" "$AUDIO_FILE" \
+  --model "$MODEL" \
+  --language "$LANG" \
+  --task transcribe \
+  --output_dir "$OUT_DIR" \
+  --output_format txt \
+  --fp16 False \
+  --verbose False >/dev/null
+
+BASE_NAME="$(basename "$AUDIO_FILE")"
+BASE_NAME="${BASE_NAME%.*}"
+TXT_FILE="$OUT_DIR/$BASE_NAME.txt"
+
+if [[ ! -f "$TXT_FILE" ]]; then
+  echo "Transcription output not found: $TXT_FILE" >&2
+  exit 1
+fi
+
+cat "$TXT_FILE"
