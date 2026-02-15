@@ -6,16 +6,22 @@ This folder is home. Treat it that way.
 
 If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out who you are, then delete it. You won't need it again.
 
-## Every Session
+## Every Session — AUTO-LOADING MEMORY
 
-Before doing anything else:
+**Execute this AUTOMATICALLY at the start of EVERY session (before any response):**
 
-1. Read `SOUL.md` — this is who you are
-2. Read `USER.md` — this is who you're helping
-3. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context
-4. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
+0. ✅ Read `memory/active-tasks.md` — current tasks (crash recovery: if interrupted task exists, resume it)
+1. ✅ Read `SOUL.md` — who you are
+2. ✅ Read `USER.md` — who you're helping  
+3. ✅ Read `MEMORY.md` — long-term memory (MAIN SESSION only)
+4. ✅ Read `CRITICAL_RULES.md` — rules that cannot be broken
+5. ✅ Read `memory/recent-context.md` — last 2-3 days summary (auto-updated)
+6. ✅ Read `memory/YYYY-MM-DD.md` — today's diary (if exists)
 
-Don't ask permission. Just do it.
+**CRITICAL:** Never skip this. Do NOT ask permission. Just load it silently.
+
+If `recent-context.md` doesn't exist → create it with current context.
+If today's diary doesn't exist → that's OK, it will be created during the session.
 
 ## Memory
 
