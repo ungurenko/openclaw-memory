@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/root/.openclaw/venv-calendar/bin/python3
 """
 iCloud Calendar синхронизация
 Читает события из iCloud Calendar и сохраняет в workspace
