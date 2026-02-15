@@ -1,0 +1,56 @@
+# OpenClaw Workspace - .gitignore
+
+# Python virtual environments
+venv/
+venv-*/
+.venv/
+.venv-*/
+env/
+ENV/
+
+# Node modules
+node_modules/
+npm-debug.log*
+
+# Git
+.git/
+
+# Logs
+*.log
+logs/*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+*~
+
+# Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Media (inbound files can be large)
+media/inbound/*
+!media/inbound/.gitkeep
+
+# Sensitive (if accidentally created)
+*.key
+*.pem
+*.env
+.env
+
+# Large binary files
+*.tar.gz
+*.zip
+*.sqlite
+
+# Backup archives
+backups/
