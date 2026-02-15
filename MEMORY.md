@@ -36,6 +36,12 @@
 - **Whisper:** установлен в venv-whisper для транскрипции голосовых (модель base, русский язык)
 
 ## Интеграции
+- **Макс (AI News Bot):** Отдельный агент OpenClaw с собственным ворксплейсом `/root/.openclaw/workspace-ai-news-bot`. 
+  - Аккаунт: `ai-news-bot` (Telegram).
+  - Канал: `@ai_newsclaw`.
+  - Роль: Публикация новостей про ИИ (уже работает).
+  - Связь: Я могу видеть его файлы и историю сессий, но мы работаем параллельно.
+
 - **iCloud Calendar:** подключён (5 календарей: Домашний, Рабочий, LifeWheel, Контент Instagram, Напоминания)
   - Автосинхронизация: ежедневно 09:00 (Мск) через cron
   - Скрипт: `/root/.openclaw/workspace/scripts/icloud-calendar-sync.py`
@@ -51,7 +57,8 @@
 ## Model Usage Policy (Aлександр)
 - **Opus 4.6** — очень дорогая модель, НИКОГДА не использовать автоматически или как fallback.
 - Использовать Opus 4.6 только если Александр явно попросит об этом.
-- Default: Claude Sonnet 4.5 (primary), gpt-5.3-codex (fallback).
+- Default: Claude Sonnet 4.5 Thinking (primary), Gemini 3 Flash/Pro (fallbacks).
+- **Обязательное уведомление:** при каждом переключении на другую модель (по запросу или из-за сбоя) я обязан явно сообщить об этом Александру в начале сообщения.
 
 ## Auto-Memory System (NEW)
 **Настроено:** 14 февраля 2026
