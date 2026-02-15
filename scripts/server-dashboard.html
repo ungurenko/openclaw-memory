@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f7fa;
+    color: #1a1a2e;
+    padding: 28px;
+    width: 520px;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e8ecf1;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-icon {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .header h1 { font-size: 18px; font-weight: 700; color: #1a1a2e; }
+  .header .hostname { font-size: 13px; color: #6b7280; font-weight: 400; }
+  .timestamp { font-size: 12px; color: #9ca3af; text-align: right; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+
+  .card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border: 1px solid #f0f0f5;
+  }
+  .card-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #9ca3af;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .card-value {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .card-sub {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #f0f0f5;
+    border-radius: 3px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .green { color: #10b981; }
+  .yellow { color: #f59e0b; }
+  .red { color: #ef4444; }
+  .fill-green { background: linear-gradient(90deg, #10b981, #34d399); }
+  .fill-yellow { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .fill-red { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+  .services {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border: 1px solid #f0f0f5;
+  }
+  .services .card-label { margin-bottom: 12px; }
+  .service-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f5f5fa;
+  }
+  .service-row:last-child { border-bottom: none; }
+  .service-name { font-size: 13px; font-weight: 500; }
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .badge-green { background: #ecfdf5; color: #059669; }
+  .badge-red { background: #fef2f2; color: #dc2626; }
+  .badge-yellow { background: #fffbeb; color: #d97706; }
+
+  .footer {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 11px;
+    color: #c0c5d0;
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <div class="header-icon">🖥️</div>
+      <div>
+        <h1>Server Health</h1>
+        <div class="hostname" id="hostname">pl-vmv2-mini</div>
+      </div>
+    </div>
+    <div class="timestamp" id="timestamp">—</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-label">CPU</div>
+      <div class="card-value" id="cpu-val">—</div>
+      <div class="card-sub" id="cpu-sub"></div>
+      <div class="progress-bar"><div class="progress-fill" id="cpu-bar"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Память</div>
+      <div class="card-value" id="mem-val">—</div>
+      <div class="card-sub" id="mem-sub"></div>
+      <div class="progress-bar"><div class="progress-fill" id="mem-bar"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Диск</div>
+      <div class="card-value" id="disk-val">—</div>
+      <div class="card-sub" id="disk-sub"></div>
+      <div class="progress-bar"><div class="progress-fill" id="disk-bar"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Uptime</div>
+      <div class="card-value" id="uptime-val" style="font-size:20px;">—</div>
+      <div class="card-sub" id="uptime-sub"></div>
+    </div>
+  </div>
+
+  <div class="services">
+    <div class="card-label">Сервисы</div>
+    <div class="service-row">
+      <span class="service-name">🦀 OpenClaw Gateway</span>
+      <span class="badge" id="svc-openclaw">—</span>
+    </div>
+    <div class="service-row">
+      <span class="service-name">🔒 SSH</span>
+      <span class="badge" id="svc-ssh">—</span>
+    </div>
+    <div class="service-row">
+      <span class="service-name">🛡️ Firewall (UFW)</span>
+      <span class="badge" id="svc-ufw">—</span>
+    </div>
+    <div class="service-row">
+      <span class="service-name">🌐 Соединения</span>
+      <span class="badge badge-green" id="svc-conn">—</span>
+    </div>
+    <div class="service-row">
+      <span class="service-name">⚠️ Неудачные SSH (24ч)</span>
+      <span class="badge" id="svc-ssh-fail">—</span>
+    </div>
+  </div>
+
+  <div class="footer">🦀 Краб • Server Health Dashboard</div>
+
+  <script>
+    // Data injected by the generation script
+    const D = __DATA_PLACEHOLDER__;
+
+    function colorClass(pct) { return pct < 60 ? 'green' : pct < 85 ? 'yellow' : 'red'; }
+    function fillClass(pct) { return pct < 60 ? 'fill-green' : pct < 85 ? 'fill-yellow' : 'fill-red'; }
+    function badgeClass(ok) { return ok ? 'badge badge-green' : 'badge badge-red'; }
+
+    document.getElementById('hostname').textContent = D.hostname + ' • ' + D.ip_addr;
+    document.getElementById('timestamp').innerHTML = D.timestamp + '<br>Kernel ' + D.kernel;
+
+    // CPU
+    document.getElementById('cpu-val').textContent = D.cpu_usage + '%';
+    document.getElementById('cpu-val').className = 'card-value ' + colorClass(D.cpu_usage);
+    document.getElementById('cpu-sub').textContent = D.cpu_cores + ' ядер • Load: ' + D.load;
+    document.getElementById('cpu-bar').className = 'progress-fill ' + fillClass(D.cpu_usage);
+    document.getElementById('cpu-bar').style.width = D.cpu_usage + '%';
+
+    // Memory
+    document.getElementById('mem-val').textContent = D.mem_pct + '%';
+    document.getElementById('mem-val').className = 'card-value ' + colorClass(D.mem_pct);
+    document.getElementById('mem-sub').textContent = D.mem_used + ' / ' + D.mem_total + ' MB';
+    document.getElementById('mem-bar').className = 'progress-fill ' + fillClass(D.mem_pct);
+    document.getElementById('mem-bar').style.width = D.mem_pct + '%';
+
+    // Disk
+    document.getElementById('disk-val').textContent = D.disk_pct + '%';
+    document.getElementById('disk-val').className = 'card-value ' + colorClass(D.disk_pct);
+    document.getElementById('disk-sub').textContent = D.disk_used + ' / ' + D.disk_total;
+    document.getElementById('disk-bar').className = 'progress-fill ' + fillClass(D.disk_pct);
+    document.getElementById('disk-bar').style.width = D.disk_pct + '%';
+
+    // Uptime
+    document.getElementById('uptime-val').textContent = D.uptime;
+
+    // Services
+    const oc = D.openclaw_status.trim().split('\n')[0];
+    const ocOk = oc === 'active';
+    document.getElementById('svc-openclaw').textContent = ocOk ? 'Работает' : oc;
+    document.getElementById('svc-openclaw').className = badgeClass(ocOk);
+
+    const sshOk = D.ssh_status === 'active';
+    document.getElementById('svc-ssh').textContent = sshOk ? 'Работает' : D.ssh_status;
+    document.getElementById('svc-ssh').className = badgeClass(sshOk);
+
+    const ufwOk = D.ufw_status && D.ufw_status.toLowerCase().includes('active');
+    document.getElementById('svc-ufw').textContent = ufwOk ? 'Активен' : (D.ufw_status || 'Выкл');
+    document.getElementById('svc-ufw').className = ufwOk ? 'badge badge-green' : 'badge badge-yellow';
+
+    document.getElementById('svc-conn').textContent = D.open_connections + ' активных';
+
+    const failOk = parseInt(D.failed_ssh_24h) === 0;
+    document.getElementById('svc-ssh-fail').textContent = D.failed_ssh_24h;
+    document.getElementById('svc-ssh-fail').className = failOk ? 'badge badge-green' : 'badge badge-red';
+  </script>
+</body>
+</html>
