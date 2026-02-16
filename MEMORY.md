@@ -25,11 +25,16 @@
 ## Инфраструктура
 - **Сервер OpenClaw:** выделенный удалённый VPS (always-on), Ubuntu 24.04.4 LTS, 4 ядра, 8 Gb RAM, 118 Gb диск
 - **Hostname:** pl-vmv2-mini
-- **Бэкапы:** нет
-- **Шифрование диска:** нет (LUKS не настроен)
-- **Автообновления:** unattended-upgrades включены
-- **Firewall:** ufw включён (deny incoming, allow SSH 22/tcp)
-- **SSH:** key-only, PermitRootLogin prohibit-password
+- **Public IP:** 82.40.37.143
+- **Бэкапы:** нет (TODO: настроить системные бэкапы)
+- **Шифрование диска:** нет (LUKS не настроен; требует переустановки системы)
+- **Автообновления:** unattended-upgrades включены (security patches)
+- **Firewall:** UFW активен (deny incoming by default, SSH 22/tcp LIMIT with rate limiting)
+- **SSH:** key-only, PermitRootLogin prohibit-password, защищён fail2ban (129 IP забанено за всё время)
+- **Fail2Ban:** активен (jails: sshd + recidive)
+- **OpenClaw Security:** 0 critical, 0 warn (слабые модели удалены из fallbacks)
+- **Security Monitoring:** ежедневный автоматический audit (09:00 МСК, результаты в Telegram)
+- **Risk Profile:** Developer Convenience с security hardening
 - **Tailscale:** установлен, не активирован (решили работать без paired node)
 - **Whisper:** установлен в venv-whisper для транскрипции голосовых (модель base, русский язык)
 
@@ -57,6 +62,7 @@
 - Использовать Opus 4.6 только если Александр явно попросит об этом.
 - Default: Claude Sonnet 4.5 Thinking (primary), Gemini 3 Flash/Pro (fallbacks).
 - **Обязательное уведомление:** при каждом переключении на другую модель (по запросу или из-за сбоя) я обязан явно сообщить об этом Александру в начале сообщения.
+- **Про модели в чате:** если есть расхождения, ориентироваться на *runtime* (строка Runtime/model в системном контексте) и не спорить с тем, что видит Александр.
 
 ## Auto-Memory System (NEW)
 **Настроено:** 14 февраля 2026
