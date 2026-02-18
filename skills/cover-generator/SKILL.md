@@ -15,6 +15,18 @@ description: "Generate horizontal Telegram channel post covers via kie.ai API (G
 
 ---
 
+## Step 0: Ask for Model
+
+**ALWAYS ask Александр which model to use before generating:**
+
+> "Какую модель использовать?
+> **A) GPT Image 1.5** — лучше рендерит русский текст, надёжнее
+> **B) Nano Banana Pro** — лучше для художественных/стилизованных визуалов"
+
+Wait for the answer before proceeding.
+
+---
+
 ## Step 1: Read Style Guide
 
 Before generating, read `references/style-guide.md` to pick the right style and prompt pattern.

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "tavily": {
+      "baseUrl": "https://mcp.tavily.com/mcp/?tavilyApiKey=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",
+      "description": "Tavily MCP search"
+    }
+  },
+  "imports": []
+}

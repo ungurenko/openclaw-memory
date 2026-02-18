@@ -33,9 +33,11 @@ Things like:
 
 ### Web Search
 
-- Primary provider: **Exa MCP** via `mcporter`
-- Server name: `exa`
-- Policy: use Exa first in all sessions with Александр; fallback only if unavailable
+- Primary providers via `mcporter`:
+  - **Tavily MCP** (server: `tavily`) — search, extract, crawl, research
+  - **Exa MCP** (server: `exa`) — search, company research, deep research
+- Policy: use Tavily for general search; Exa for company/deep research
+- API key stored in mcporter config
 
 ## Why Separate?
 

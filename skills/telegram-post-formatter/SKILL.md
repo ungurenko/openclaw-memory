@@ -1,6 +1,22 @@
 ---
 name: telegram-post-formatter
 description: Format raw text into professionally styled Telegram channel posts following Александр's editorial style. Use when Александр needs to prepare content for his Telegram channel — transforming draft text into clean, scannable posts with proper Markdown formatting, emoji placement, visual structure, and brand voice. Handles heading hierarchy, lists, quotes, CTA formatting, and code blocks.
+model: zai/glm-5
+---
+
+## ⚡ Модель: zai/glm-5 · thinking=on
+
+Этот скилл всегда использует **zai/glm-5** с включенным размышлением — лучшая модель для форматирования текстов (проверено бенчмарком 18 фев 2026).
+
+**Способ 1 — через скрипт (рекомендуется):**
+```bash
+python3 scripts/format_post.py "сырой текст"
+# или
+cat raw.txt | python3 scripts/format_post.py
+```
+
+**Способ 2 — вручную:** передай правила ниже + текст в zai/glm-5 через `session_status(model="zai/glm-5")` перед вызовом.
+
 ---
 
 # Telegram Post Formatter

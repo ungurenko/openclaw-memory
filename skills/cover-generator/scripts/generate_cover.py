@@ -50,7 +50,9 @@ def poll_gpt4o(task_id: str, timeout: int = 300) -> str:
         d = resp.json().get("data", {})
         flag = d.get("successFlag")
         if flag == 1:
-            urls = d.get("response", {}).get("result_urls", [])
+            response = d.get("response", {})
+            # API returns camelCase 'resultUrls' or snake_case 'result_urls'
+            urls = response.get("resultUrls") or response.get("result_urls") or []
             if urls:
                 return urls[0]
             die("No result URLs in response")
@@ -83,24 +85,28 @@ def generate_nano_banana(prompt: str) -> str:
 
 
 def poll_market(task_id: str, timeout: int = 300) -> str:
-    """Poll market endpoint until done, return image URL."""
-    url = f"{BASE_URL}/api/v1/jobs/task-detail"
+    """Poll market unified endpoint until done, return image URL."""
+    url = f"{BASE_URL}/api/v1/jobs/recordInfo"
     deadline = time.time() + timeout
     while time.time() < deadline:
         resp = requests.get(url, params={"taskId": task_id}, headers=_headers(), timeout=15)
         d = resp.json().get("data", {})
-        flag = d.get("successFlag")
-        if flag == 1:
-            output = d.get("response") or {}
-            # Market API: images usually in output.images or result_urls
-            images = output.get("images") or output.get("result_urls") or []
-            if images:
-                img = images[0]
-                return img if isinstance(img, str) else img.get("url", "")
-            die("No images in Nano Banana response")
-        if flag == 2:
-            die(f"Nano Banana failed: {d.get('errorMessage')}")
-        print(f"  Nano Banana: generating...", flush=True)
+        if d is None:
+            print(f"  Nano Banana: queuing...", flush=True)
+            time.sleep(8)
+            continue
+        state = d.get("state", "")
+        if state == "success":
+            result_json = d.get("resultJson") or "{}"
+            import json as _json
+            result = _json.loads(result_json) if isinstance(result_json, str) else result_json
+            urls = result.get("resultUrls") or result.get("result_urls") or []
+            if urls:
+                return urls[0]
+            die("No result URLs in Nano Banana response")
+        if state == "fail":
+            die(f"Nano Banana failed: {d.get('failMsg')}")
+        print(f"  Nano Banana: {state or 'generating'}...", flush=True)
         time.sleep(8)
     die("Timeout waiting for Nano Banana")
 

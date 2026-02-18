@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ВАЙБС — Групповое наставничество</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#6366f1', // Indigo
+                            600: '#4f46e5',
+                            accent: '#a855f7', // Purple
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .gradient-text {
+            background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-300 antialiased selection:bg-brand-500 selection:text-white overflow-x-hidden">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/50">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="text-xl font-bold tracking-tight text-white">ВАЙБС<span class="text-brand-500">.</span></div>
+            <a href="#price" class="hidden md:inline-flex items-center justify-center px-5 py-2 border border-transparent text-sm font-medium rounded-full text-white bg-brand-600 hover:bg-brand-500 transition shadow-lg shadow-brand-500/20">
+                Записаться
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="relative min-h-screen flex items-center justify-center px-4 pt-16">
+        <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
+            <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-600/20 rounded-full blur-[128px] animate-pulse-slow"></div>
+            <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-brand-accent/20 rounded-full blur-[128px] animate-pulse-slow" style="animation-delay: 2s;"></div>
+        </div>
+
+        <div class="max-w-4xl text-center space-y-8">
+            <div class="inline-flex items-center px-3 py-1 rounded-full border border-brand-500/30 bg-brand-500/10 text-brand-400 text-sm font-medium mb-4">
+                <span class="w-2 h-2 rounded-full bg-brand-500 mr-2 animate-pulse"></span>
+                Новая эра вайб-кодинга
+            </div>
+            
+            <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight">
+                Управляй <span class="gradient-text">технологиями</span> мышлением
+            </h1>
+            
+            <p class="text-xl md:text-2xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                Telegram-боты, сайты и сервисы на базе ИИ (Claude, GPT). Создавай без навыков программирования. Войди в будущее эксперта.
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
+                <a href="#price" class="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-brand-600 to-brand-accent hover:from-brand-500 hover:to-brand-500 text-white text-lg font-bold rounded-xl shadow-[0_0_40px_-10px_rgba(99,102,241,0.5)] transition transform hover:scale-105">
+                    Записаться на курс
+                </a>
+                <a href="#benefits" class="w-full sm:w-auto px-8 py-4 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white text-lg font-medium rounded-xl transition">
+                    Что внутри?
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- What you'll get (Benefits) -->
+    <section id="benefits" class="py-24 bg-slate-900/50">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Что получишь в конце</h2>
+                <div class="w-20 h-1 bg-brand-500 mx-auto rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Item 1 -->
+                <div class="group bg-slate-900 p-8 rounded-2xl border border-slate-800 hover:border-brand-500/50 transition duration-300">
+                    <div class="w-12 h-12 bg-brand-500/10 rounded-lg flex items-center justify-center text-brand-500 mb-6 group-hover:scale-110 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Telegram-боты</h3>
+                    <p class="text-slate-400">Настраивайй автоматизацию чат-ботов для клиентов и личного пользования.</p>
+                </div>
+
+                <!-- Item 2 -->
+                <div class="group bg-slate-900 p-8 rounded-2xl border border-slate-800 hover:border-brand-500/50 transition duration-300">
+                    <div class="w-12 h-12 bg-brand-500/10 rounded-lg flex items-center justify-center text-brand-500 mb-6 group-hover:scale-110 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Сайты без кода</h3>
+                    <p class="text-slate-400">Делай лендинги, корпоративные сайты и портфолио быстро и красиво.</p>
+                </div>
+
+                <!-- Item 3 -->
+                <div class="group bg-slate-900 p-8 rounded-2xl border border-slate-800 hover:border-brand-500/50 transition duration-300">
+                    <div class="w-12 h-12 bg-brand-500/10 rounded-lg flex items-center justify-center text-brand-500 mb-6 group-hover:scale-110 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Сервисы с ИИ</h3>
+                    <p class="text-slate-400">Интегрируй Claude и GPT в свои рабочие процессы для максимальной эффективности.</p>
+                </div>
+
+                <!-- Item 4 -->
+                <div class="group bg-slate-900 p-8 rounded-2xl border border-slate-800 hover:border-brand-500/50 transition duration-300">
+                    <div class="w-12 h-12 bg-brand-500/10 rounded-lg flex items-center justify-center text-brand-500 mb-6 group-hover:scale-110 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Никакого кода</h3>
+                    <p class="text-slate-400">Просто объясни задачу, а наставник и инструменты сделают всё остальное.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- For whom (Target Audience) -->
+    <section id="audience" class="py-24 relative">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Кто тренируется</h2>
+                <p class="text-slate-400">Собираем аудиторию, которая движется в одном темпе</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Audience 1 -->
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-xl">⚡</div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white mb-2">Эксперты</h3>
+                        <p class="text-slate-400">Бизнес-тренеры, коучи, консультанты, которым нужно автоматизировать коммуникацию с клиентами.</p>
+                    </div>
+                </div>
+
+                <!-- Audience 2 -->
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-xl">🎥</div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white mb-2">Блогеры</h3>
+                        <p class="text-slate-400">Контент-мейкеры, создающие digital-продукты и хотят расширить свою экосистему навыков.</p>
+                    </div>
+                </div>
+
+                <!-- Audience 3 -->
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-xl">🚀</div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white mb-2">Гибридные работники</h3>
+                        <p class="text-slate-400">Предприниматели и владельцы бизнеса, мечтающие масштабироваться без найма разработчиков.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Price & CTA -->
+    <section id="price" class="py-24 px-4">
+        <div class="max-w-3xl mx-auto text-center">
+            <div class="relative bg-gradient-to-b from-slate-900 to-slate-950 rounded-[2.5rem] border border-slate-800 p-8 md:p-16 overflow-hidden">
+                <!-- Decorative elements -->
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-gradient-to-r from-transparent via-brand-500 to-transparent"></div>
+                
+                <h2 class="text-2xl md:text-3xl font-medium text-slate-300 mb-2">Старт набора 21 февраля 2026</h2>
+                
+                <div class="my-8">
+                    <p class="text-slate-500 text-lg mb-1">Полная стоимость курса</p>
+                    <p class="text-6xl md:text-8xl font-extrabold text-white tracking-tight">19 990 ₽</p>
+                </div>
+
+                <ul class="text-left text-slate-400 space-y-4 mb-10 max-w-md mx-auto">
+                    <li class="flex items-center"><span class="text-brand-500 mr-2">✓</span> Групповое наставничество</li>
+                    <li class="flex items-center"><span class="text-brand-500 mr-2">✓</span> Все материалы и доступ к ИИ</li>
+                    <li class="flex items-center"><span class="text-brand-500 mr-2">✓</span> Чат поддержки</li>
+                    <li class="flex items-center"><span class="text-brand-500 mr-2">✓</span> Сертификат об окончании</li>
+                </ul>
+
+                <a href="#" class="block w-full py-5 bg-white text-slate-950 text-lg font-bold rounded-xl hover:bg-brand-50 transition shadow-xl shadow-white/5 hover:shadow-brand-500/20">
+                    Забронировать место
+                </a>
+                
+                <p class="mt-4 text-sm text-slate-600">Оплата в два этапа при старте потока</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-slate-950 py-12">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="text-2xl font-bold text-white tracking-tight">ВАЙБС<span class="text-brand-500">.</span></div>
+            <div class="text-slate-500 text-sm">
+                &copy; 2025 VIBES Coding. Все права защищены.
+            </div>
+            <div class="flex gap-4">
+                <a href="#" class="text-slate-400 hover:text-white transition">Telegram</a>
+                <a href="#" class="text-slate-400 hover:text-white transition">VK</a>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
