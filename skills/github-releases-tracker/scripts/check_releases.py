@@ -124,51 +124,49 @@ def format_release_info(repo_display: str, release: Dict, is_new: bool) -> str:
 
 
 def translate_text(text: str, target_lang: str = "ru") -> str:
-    """Перевести текст на указанный язык через MyMemory API."""
-    import urllib.parse
-    
-    # Ограничиваем размер для перевода (MyMemory лимит ~500 символов за запрос)
-    max_chunk = 450
+    """Перевести текст на указанный язык через ZAI API (glm-4.7)."""
     original_text = text
-    
+
+    # Ограничиваем размер для перевода
+    max_translate_length = 3000
+    if len(text) > max_translate_length:
+        text = text[:max_translate_length] + "\n\n... (текст обрезан для перевода)"
+
     try:
-        # Разбиваем на чанки если текст длинный
-        if len(text) <= max_chunk:
-            chunks = [text]
-        else:
-            chunks = []
-            lines = text.split("\n")
-            current = ""
-            for line in lines:
-                if len(current) + len(line) + 1 <= max_chunk:
-                    current = current + "\n" + line if current else line
-                else:
-                    if current:
-                        chunks.append(current)
-                    current = line
-            if current:
-                chunks.append(current)
-        
-        translated_chunks = []
-        for chunk in chunks:
-            url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(chunk)}&langpair=en|{target_lang}"
-            response = requests.get(url, timeout=15)
+        response = requests.post(
+            "https://api.z.ai/api/coding/paas/v4/chat/completions",
+            headers={
+                "Authorization": "Bearer 123ecc7bfee04d58b7404b8712d7607b.dn9jUrwetSK65S7n",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "glm-4.7",
+                "messages": [{
+                    "role": "user",
+                    "content": f"Переведи следующий текст с английского на русский. Выведи ТОЛЬКО перевод без объяснений:\n\n{text}"
+                }],
+                "max_tokens": 4000
+            },
+            timeout=45
+        )
+
+        if response.status_code == 200:
+            result = response.json()
+            msg = result.get("choices", [{}])[0].get("message", {})
+            content = msg.get("content", "")
+            # Если контент пустой, берём из reasoning_content
+            if not content or not content.strip():
+                content = msg.get("reasoning_content", "")
             
-            if response.status_code == 200:
-                result = response.json()
-                if result.get("responseStatus") == 200:
-                    translated_chunks.append(result["responseData"]["translatedText"])
-                else:
-                    # Fallback на оригинал для этого чанка
-                    translated_chunks.append(chunk)
+            if content and content.strip():
+                return content + "\n\n📝 _Перевод: GLM-4.7_"
             else:
-                translated_chunks.append(chunk)
-        
-        if translated_chunks:
-            return "\n".join(translated_chunks) + "\n\n📝 _Машинный перевод_"
-    except Exception:
-        pass
-    
+                print(f"⚠️ Пустой ответ от API перевода")
+        else:
+            print(f"⚠️ Ошибка API перевода: {response.status_code} - {response.text[:200]}")
+    except Exception as e:
+        print(f"⚠️ Исключение при переводе: {e}")
+
     # Fallback: возвращаем оригинал с пометкой
     return original_text + "\n\n📝 _Оригинал на английском_"
 
