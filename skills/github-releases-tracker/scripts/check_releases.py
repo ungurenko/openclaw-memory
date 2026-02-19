@@ -123,6 +123,56 @@ def format_release_info(repo_display: str, release: Dict, is_new: bool) -> str:
     return result
 
 
+def translate_text(text: str, target_lang: str = "ru") -> str:
+    """Перевести текст на указанный язык через MyMemory API."""
+    import urllib.parse
+    
+    # Ограничиваем размер для перевода (MyMemory лимит ~500 символов за запрос)
+    max_chunk = 450
+    original_text = text
+    
+    try:
+        # Разбиваем на чанки если текст длинный
+        if len(text) <= max_chunk:
+            chunks = [text]
+        else:
+            chunks = []
+            lines = text.split("\n")
+            current = ""
+            for line in lines:
+                if len(current) + len(line) + 1 <= max_chunk:
+                    current = current + "\n" + line if current else line
+                else:
+                    if current:
+                        chunks.append(current)
+                    current = line
+            if current:
+                chunks.append(current)
+        
+        translated_chunks = []
+        for chunk in chunks:
+            url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(chunk)}&langpair=en|{target_lang}"
+            response = requests.get(url, timeout=15)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("responseStatus") == 200:
+                    translated_chunks.append(result["responseData"]["translatedText"])
+                else:
+                    # Fallback на оригинал для этого чанка
+                    translated_chunks.append(chunk)
+            else:
+                translated_chunks.append(chunk)
+        
+        if translated_chunks:
+            return "\n".join(translated_chunks) + "\n\n📝 _Машинный перевод_"
+    except Exception:
+        pass
+    
+    # Fallback: возвращаем оригинал с пометкой
+    return original_text + "\n\n📝 _Оригинал на английском_"
+
+
 def format_body(body: str) -> str:
     """Форматировать тело релиза для читаемости."""
     # Ограничиваем размер
@@ -130,8 +180,11 @@ def format_body(body: str) -> str:
     if len(body) > max_length:
         body = body[:max_length] + "\n\n... (полное описание по ссылке выше)"
     
+    # Переводим на русский
+    translated_body = translate_text(body)
+    
     # Добавляем отступы
-    lines = body.split("\n")
+    lines = translated_body.split("\n")
     formatted_lines = ["  " + line for line in lines]
     
     return "\n".join(formatted_lines) + "\n"

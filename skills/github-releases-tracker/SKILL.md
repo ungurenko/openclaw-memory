@@ -37,6 +37,7 @@ The script will:
 - Structured sections for each repository
 - Emoji markers for visual clarity
 - Truncated changelogs (max 1500 chars) with links to full versions
+- **Automatic translation** of changelogs to Russian via MyMemory API
 - Summary at the end indicating if new releases were found
 
 **GitHub API:**
