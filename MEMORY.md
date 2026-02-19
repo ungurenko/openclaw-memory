@@ -55,7 +55,7 @@
 - Деплой: `vercel --token $VERCEL_TOKEN --prod`
 
 ## Интеграции
-- **Макс (AI News Bot):** workspace `/root/.openclaw/workspace-ai-news-bot`, канал `@ai_newsclaw`. Публикует AI-новости. Модель: `zai/glm-5` (с 17 фев 2026, было gemini-3-pro-high). ⚠️ **ВСЕ ПОСТЫ НА РУССКОМ ЯЗЫКЕ** (исправлено 18 фев 2026).
+- **Макс (AI News Bot):** ❌ **УДАЛЁН 19 фев 2026** по запросу Александра. Канал `@ai_newsclaw` больше не обновляется.
 - **Арт (AI-антрополог):** workspace `/root/.openclaw/workspace-art-blogger`. Экспериментальный AI-блогер — думает, анализирует, публикует наблюдения о человеческой природе и философские размышления о будущем. Модель: `opencode/kimi-k2.5` (Moonshot AI Kimi K2.5). Старт разработки: 18 фев 2026. ⚠️ **OpenRouter удалён** из конфигурации (18 фев 2026) — больше не используется.
 
 ## Model Usage Policy
