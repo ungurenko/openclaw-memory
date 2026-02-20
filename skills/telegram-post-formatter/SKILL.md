@@ -33,9 +33,11 @@ Apply these rules strictly when formatting posts:
 
 ### Critical Constraints
 
+- **🚫 КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО менять текст** — ни слова, ни буквы, ни порядок. Только форматирование (Markdown, абзацы, emoji)
 - **ONLY Markdown syntax** — `**bold**`, `*italic*`, `` `code` ``, `> quote`
 - **NEVER HTML tags** — no `<b>`, `<i>`, `<u>`, etc.
 - **Never wrap output in code blocks** — return ONLY clean formatted text
+- **NO horizontal rules** — never use `---` or other dividers
 - **Russian quotes only** — always use «елочки» («»), never single/double ASCII quotes
 - **Markdown limitation:** NO underline available — use ***bold italic*** for strong emphasis instead
 
@@ -162,7 +164,9 @@ Format: Emoji + text with key words in ***bold italic***
 
 ## What NOT to Change
 
+- **🚫 DO NOT change ANY text** — не менять НИ ОДНОГО слова или буквы
 - DO NOT change meaning
 - DO NOT add/remove words
 - DO NOT invent new headings or subheadings
+- DO NOT add horizontal rules (`---`)
 - ONLY: arrange Markdown syntax, emoji, punctuation, paragraph breaks
