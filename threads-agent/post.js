@@ -105,37 +105,57 @@ async function postToThreads(text) {
       // Если это не последняя часть — добавляем к ветке
       if (i < parts.length - 1) {
         console.log('➕ Кликаю "Add to thread"...');
+        await page.waitForTimeout(2000); // больше времени на рендер
         
-        // Ищем кнопку Add to thread
+        // Ищем кнопку Add to thread - много вариантов
         let addToThreadClicked = false;
-        const addSelectors = [
-          'button:has-text("Add to thread")',
-          '[aria-label="Add to thread"]',
-          'text=Add to thread',
-        ];
         
-        for (const selector of addSelectors) {
-          try {
-            const btn = await page.$(selector);
-            if (btn) {
-              await btn.click();
-              addToThreadClicked = true;
-              console.log(`✅ Кликнул "Add to thread" по: ${selector}`);
-              break;
-            }
-          } catch (e) {}
+        // Сначала пробуем через getByRole
+        try {
+          const addBtn = page.getByRole('button', { name: /add to thread/i });
+          if (await addBtn.isVisible({ timeout: 2000 })) {
+            await addBtn.click();
+            addToThreadClicked = true;
+            console.log('✅ Кликнул "Add to thread" через getByRole');
+          }
+        } catch (e) {}
+        
+        if (!addToThreadClicked) {
+          const addSelectors = [
+            'button:has-text("Add to thread")',
+            '[aria-label="Add to thread"]',
+            'text=Add to thread',
+            'a:has-text("Add to thread")',
+            '[data-testid="add-to-thread"]',
+            'div[role="button"]:has-text("Add to thread")',
+          ];
+          
+          for (const selector of addSelectors) {
+            try {
+              const btn = await page.$(selector);
+              if (btn) {
+                const isVisible = await btn.isVisible();
+                if (isVisible) {
+                  await btn.click();
+                  addToThreadClicked = true;
+                  console.log(`✅ Кликнул "Add to thread" по: ${selector}`);
+                  break;
+                }
+              }
+            } catch (e) {}
+          }
         }
         
         if (!addToThreadClicked) {
-          // Пробуем найти по роли
+          // Пробуем найти по тексту среди всех кликабельных элементов
           try {
-            const btns = await page.$$('button');
-            for (const btn of btns) {
+            const allBtns = await page.$$('button, a, [role="button"], div[onclick]');
+            for (const btn of allBtns) {
               const text = await btn.innerText().catch(() => '');
               if (text.toLowerCase().includes('add to thread')) {
-                await btn.click();
+                await btn.click({ force: true });
                 addToThreadClicked = true;
-                console.log('✅ Кликнул "Add to thread" по тексту кнопки');
+                console.log('✅ Кликнул "Add to thread" по перебору элементов');
                 break;
               }
             }
@@ -143,6 +163,17 @@ async function postToThreads(text) {
         }
         
         if (!addToThreadClicked) {
+          // Последняя попытка - Playwright locator
+          try {
+            await page.locator('text=/add to thread/i').first().click({ timeout: 3000 });
+            addToThreadClicked = true;
+            console.log('✅ Кликнул "Add to thread" через locator');
+          } catch (e) {}
+        }
+        
+        if (!addToThreadClicked) {
+          await page.screenshot({ path: '/tmp/threads-add-error.png' });
+          console.log('📸 Скрин ошибки Add to thread: /tmp/threads-add-error.png');
           throw new Error('Не нашёл кнопку "Add to thread"');
         }
         
@@ -218,6 +249,8 @@ async function postToThreads(text) {
     console.log('✅ Готово! Скрин: /tmp/threads-5-published.png');
     console.log('🎉 Пост опубликован!');
 
+    return page; // возвращаем page для возможных ответов
+
   } catch (error) {
     console.error('❌ Ошибка:', error.message);
     await page.screenshot({ path: '/tmp/threads-error.png' });
@@ -231,9 +264,173 @@ async function postToThreads(text) {
 // Экспортируем для использования из других модулей
 module.exports = { postToThreads };
 
+// Ответ на последний пост в профиле
+async function replyToLatestPost(text) {
+  console.log('💬 Отвечаю на последний пост...');
+
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
+
+  const context = await browser.newContext({
+    storageState: COOKIES_FILE,
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+    viewport: { width: 1280, height: 800 }
+  });
+
+  const page = await context.newPage();
+
+  try {
+    // Открываем профиль
+    console.log('📱 Открываю профиль...');
+    await page.goto('https://www.threads.net/@ungurenko', { waitUntil: 'networkidle', timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    // Кликаем на первый пост
+    console.log('🔍 Ищу последний пост...');
+    const firstPost = await page.$('a[href*="/post/"]');
+    if (!firstPost) {
+      throw new Error('Не нашёл посты в профиле');
+    }
+    await firstPost.click();
+    await page.waitForTimeout(2000);
+
+    // Ищем кнопку Reply
+    console.log('💬 Ищу кнопку Reply...');
+    const replySelectors = [
+      '[aria-label="Reply"]',
+      'button:has-text("Reply")',
+      '[data-testid="reply-button"]',
+    ];
+
+    let replyBtn = null;
+    for (const selector of replySelectors) {
+      try {
+        const btn = await page.$(selector);
+        if (btn && await btn.isVisible()) {
+          replyBtn = btn;
+          break;
+        }
+      } catch (e) {}
+    }
+
+    if (!replyBtn) {
+      // Пробуем найти по тексту
+      const allBtns = await page.$$('button, [role="button"]');
+      for (const btn of allBtns) {
+        const btnText = await btn.innerText().catch(() => '');
+        if (btnText.toLowerCase().includes('reply')) {
+          replyBtn = btn;
+          break;
+        }
+      }
+    }
+
+    if (!replyBtn) {
+      throw new Error('Не нашёл кнопку Reply');
+    }
+
+    await replyBtn.click();
+    await page.waitForTimeout(1500);
+    console.log('✅ Кликнул Reply');
+
+    // Вводим текст
+    const textarea = await page.$('[contenteditable="true"]');
+    if (!textarea) {
+      throw new Error('Не нашёл поле ввода');
+    }
+    await textarea.click();
+    await textarea.fill(text);
+    await page.waitForTimeout(1000);
+    console.log('⌨️ Ввёл текст ответа');
+    await page.waitForTimeout(1000);
+
+    // Публикуем - ищем кнопку Post или Reply в диалоге
+    console.log('🔍 Ищу кнопку публикации...');
+
+    let published = false;
+
+    // Пробуем getByRole
+    try {
+      const postBtn = page.getByRole('button', { name: /^Post$/i }).last();
+      if (await postBtn.isVisible({ timeout: 3000 })) {
+        await postBtn.click();
+        published = true;
+        console.log('✅ Кликнул Post через getByRole');
+      }
+    } catch (e) {}
+
+    if (!published) {
+      // Ищем среди всех кнопок
+      const allBtns = await page.$$('button');
+      for (const btn of allBtns) {
+        const btnText = await btn.innerText().catch(() => '');
+        if (btnText.trim() === 'Post' || btnText.trim() === 'Reply') {
+          const isVisible = await btn.isVisible().catch(() => false);
+          if (isVisible) {
+            await btn.click();
+            published = true;
+            console.log(`✅ Кликнул "${btnText.trim()}"`);
+            break;
+          }
+        }
+      }
+    }
+
+    if (!published) {
+      // Пробуем найти по aria-label
+      const ariaBtn = await page.$('[aria-label="Post"], [aria-label="Reply"]');
+      if (ariaBtn) {
+        await ariaBtn.click();
+        published = true;
+        console.log('✅ Кликнул по aria-label');
+      }
+    }
+
+    if (!published) {
+      throw new Error('Не нашёл кнопку публикации после ввода текста');
+    }
+
+    await page.waitForTimeout(2000);
+    console.log('✅ Ответ опубликован!');
+
+  } catch (error) {
+    console.error('❌ Ошибка:', error.message);
+    await page.screenshot({ path: '/tmp/threads-reply-error.png' });
+    throw error;
+  } finally {
+    await browser.close();
+  }
+}
+
+module.exports = { postToThreads, replyToLatestPost };
+
 // Если запущен напрямую (CLI)
 if (require.main === module) {
   async function main() {
+    const args = process.argv.slice(2);
+
+    // Проверяем режим reply
+    if (args[0] === 'reply') {
+      const text = args.slice(1).join(' ');
+      if (!text) {
+        console.error('❌ Укажи текст ответа: node post.js reply "Текст"');
+        process.exit(1);
+      }
+
+      console.log('🔍 Проверяю сессию...');
+      const sessionOk = checkSessionSync();
+      if (!sessionOk) {
+        console.error('❌ Сессия мертва.');
+        process.exit(1);
+      }
+
+      await replyToLatestPost(text);
+      return;
+    }
+
+    // Обычный режим публикации
     let input;
     const fromFileIdx = process.argv.indexOf('--from-file');
     if (fromFileIdx !== -1 && process.argv[fromFileIdx + 1]) {
@@ -244,7 +441,10 @@ if (require.main === module) {
     } else if (process.argv[2]) {
       input = process.argv[2];
     } else {
-      console.error('❌ Укажи текст: node post.js "Текст" или node post.js --from-file parts.json');
+      console.error('❌ Использование:');
+      console.error('   node post.js "Текст"           — опубликовать пост');
+      console.error('   node post.js reply "Текст"     — ответить на последний пост');
+      console.error('   node post.js --from-file file.json — опубликовать ветку');
       process.exit(1);
     }
 
