@@ -15,7 +15,14 @@ function checkSessionSync() {
 }
 
 async function postToThreads(text) {
-  console.log('🚀 Запускаю браузер...');
+  // Поддержка веток: строка или массив
+  const parts = Array.isArray(text) ? text : [text];
+  
+  if (parts.length === 0) {
+    throw new Error('Нет текста для публикации');
+  }
+  
+  console.log(`🚀 Запускаю браузер... Постим ${parts.length} частей`);
   
   const browser = await chromium.launch({
     headless: true,
@@ -64,50 +71,87 @@ async function postToThreads(text) {
 
     if (!clicked) {
       // Попробуем найти по тексту
-      const newThreadBtn = await page.getByRole('link', { name: /new thread|compose/i }).first();
-      if (newThreadBtn) {
-        await newThreadBtn.click();
-        clicked = true;
-        console.log('✅ Кликнул по кнопке через role');
-      }
+      try {
+        const newThreadBtn = await page.getByRole('link', { name: /new thread|compose/i }).first();
+        if (newThreadBtn) {
+          await newThreadBtn.click();
+          clicked = true;
+          console.log('✅ Кликнул по кнопке через role');
+        }
+      } catch (e) {}
     }
 
     await page.waitForTimeout(2000);
     await page.screenshot({ path: '/tmp/threads-2-compose.png' });
     console.log('📸 Скрин после клика: /tmp/threads-2-compose.png');
 
-    // Ищем поле для ввода текста
-    console.log('⌨️ Ищу поле для текста...');
-    const textareaSelectors = [
-      '[contenteditable="true"]',
-      'textarea[placeholder]',
-      '[aria-label="What\'s new?"]',
-      '[aria-placeholder="What\'s new?"]',
-      '[data-testid="thread-composer-input"]',
-    ];
-
-    let textArea = null;
-    for (const selector of textareaSelectors) {
-      try {
-        const el = await page.$(selector);
-        if (el) {
-          textArea = el;
-          console.log(`✅ Нашёл поле: ${selector}`);
-          break;
+    // Публикуем каждую часть ветки
+    for (let i = 0; i < parts.length; i++) {
+      const partText = parts[i];
+      console.log(`⌨️ Ввожу часть ${i + 1}/${parts.length} (${partText.length} символов)...`);
+      
+      // Ищем последнее поле contenteditable
+      const contentEditable = await page.$('div[contenteditable="true"]');
+      if (!contentEditable) {
+        throw new Error(`Не нашёл поле для ввода текста (часть ${i + 1})`);
+      }
+      
+      await contentEditable.click();
+      await contentEditable.fill(partText);
+      await page.waitForTimeout(500);
+      
+      await page.screenshot({ path: `/tmp/threads-3-part-${i + 1}.png` });
+      
+      // Если это не последняя часть — добавляем к ветке
+      if (i < parts.length - 1) {
+        console.log('➕ Кликаю "Add to thread"...');
+        
+        // Ищем кнопку Add to thread
+        let addToThreadClicked = false;
+        const addSelectors = [
+          'button:has-text("Add to thread")',
+          '[aria-label="Add to thread"]',
+          'text=Add to thread',
+        ];
+        
+        for (const selector of addSelectors) {
+          try {
+            const btn = await page.$(selector);
+            if (btn) {
+              await btn.click();
+              addToThreadClicked = true;
+              console.log(`✅ Кликнул "Add to thread" по: ${selector}`);
+              break;
+            }
+          } catch (e) {}
         }
-      } catch (e) {}
+        
+        if (!addToThreadClicked) {
+          // Пробуем найти по роли
+          try {
+            const btns = await page.$$('button');
+            for (const btn of btns) {
+              const text = await btn.innerText().catch(() => '');
+              if (text.toLowerCase().includes('add to thread')) {
+                await btn.click();
+                addToThreadClicked = true;
+                console.log('✅ Кликнул "Add to thread" по тексту кнопки');
+                break;
+              }
+            }
+          } catch (e) {}
+        }
+        
+        if (!addToThreadClicked) {
+          throw new Error('Не нашёл кнопку "Add to thread"');
+        }
+        
+        await page.waitForTimeout(1000);
+      }
     }
-
-    if (!textArea) {
-      throw new Error('Не нашёл поле для ввода текста');
-    }
-
-    await textArea.click();
-    await textArea.fill(text);
-    await page.waitForTimeout(1000);
     
-    await page.screenshot({ path: '/tmp/threads-3-typed.png' });
-    console.log('📸 Скрин с текстом: /tmp/threads-3-typed.png');
+    await page.screenshot({ path: '/tmp/threads-4-ready.png' });
+    console.log('📸 Скрин перед публикацией: /tmp/threads-4-ready.png');
 
     // Ищем кнопку публикации
     console.log('🔍 Ищу кнопку публикации...');
@@ -136,8 +180,8 @@ async function postToThreads(text) {
         try {
           const buttons = await page.$$(selector);
           for (const btn of buttons) {
-            const text = await btn.innerText().catch(() => '');
-            if (text.trim() === 'Post') {
+            const txt = await btn.innerText().catch(() => '');
+            if (txt.trim() === 'Post') {
               publishBtn = btn;
               console.log(`✅ Нашёл кнопку Post в модальном окне`);
               break;
@@ -152,8 +196,8 @@ async function postToThreads(text) {
       // Последняя попытка — все кнопки на странице
       const allButtons = await page.$$('button');
       for (const btn of allButtons) {
-        const text = await btn.innerText().catch(() => '');
-        if (text.trim() === 'Post') {
+        const txt = await btn.innerText().catch(() => '');
+        if (txt.trim() === 'Post') {
           publishBtn = btn;
           console.log('✅ Нашёл кнопку Post среди всех кнопок');
           break;
@@ -170,9 +214,9 @@ async function postToThreads(text) {
     await publishBtn.click();
     await page.waitForTimeout(3000);
 
-    await page.screenshot({ path: '/tmp/threads-4-ready.png' });
-    console.log('✅ Готово! Скрин: /tmp/threads-4-ready.png');
-    console.log('🎉 Всё выглядит хорошо! Для реальной публикации раскомментируй publishBtn.click()');
+    await page.screenshot({ path: '/tmp/threads-5-published.png' });
+    console.log('✅ Готово! Скрин: /tmp/threads-5-published.png');
+    console.log('🎉 Пост опубликован!');
 
   } catch (error) {
     console.error('❌ Ошибка:', error.message);
@@ -184,19 +228,34 @@ async function postToThreads(text) {
   }
 }
 
-// Запуск
-const postText = process.argv[2];
-if (!postText) {
-  console.error('❌ Укажи текст поста: node post.js "Текст поста"');
-  process.exit(1);
+// Экспортируем для использования из других модулей
+module.exports = { postToThreads };
+
+// Если запущен напрямую (CLI)
+if (require.main === module) {
+  async function main() {
+    let input;
+    const fromFileIdx = process.argv.indexOf('--from-file');
+    if (fromFileIdx !== -1 && process.argv[fromFileIdx + 1]) {
+      const filePath = process.argv[fromFileIdx + 1];
+      const raw = require('fs').readFileSync(filePath, 'utf8');
+      input = JSON.parse(raw);
+      console.log(`📂 Загружено ${input.length} частей из ${filePath}`);
+    } else if (process.argv[2]) {
+      input = process.argv[2];
+    } else {
+      console.error('❌ Укажи текст: node post.js "Текст" или node post.js --from-file parts.json');
+      process.exit(1);
+    }
+
+    console.log('🔍 Проверяю сессию перед публикацией...');
+    const sessionOk = checkSessionSync();
+    if (!sessionOk) {
+      console.error('❌ Сессия мертва. Уведомление отправлено в Telegram. Публикация отменена.');
+      process.exit(1);
+    }
+
+    await postToThreads(input);
+  }
+  main().catch(console.error);
 }
-
-console.log('🔍 Проверяю сессию перед публикацией...');
-const sessionOk = checkSessionSync();
-
-if (!sessionOk) {
-  console.error('❌ Сессия мертва. Уведомление отправлено в Telegram. Публикация отменена.');
-  process.exit(1);
-}
-
-postToThreads(postText).catch(console.error);
