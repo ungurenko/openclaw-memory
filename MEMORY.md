@@ -99,7 +99,9 @@ _Обновлено heartbeat'ом. Содержит долгосрочную п
 - Уходить работать без обратной связи → **сначала "работаю над X", потом делать**.
 
 ## Критичные правила cron-задач (урок от 20.02.2026)
-- ВСЕ напоминания/уведомления для людей должны иметь **delivery** с `mode: "announce"` и `channel: "telegram"`
+- **ОШИБКА:** systemEvent + sessionTarget:"main" НЕ поддерживает delivery
+- **ПРАВИЛЬНО:** agentTurn + sessionTarget:"isolated" + delivery:{mode:"announce", channel:"telegram"}
+- ВСЕ напоминания для людей должны использовать agentTurn, НЕ systemEvent
 - Без delivery → сообщение уходит только в сессию, пользователь НЕ видит
 - Проверять все существующие задачи: `cron list` → убедиться у всех критичных есть delivery
 
