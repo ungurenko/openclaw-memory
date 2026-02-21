@@ -7,6 +7,8 @@ description: Create professional presentations using Slidev (Markdown-based pres
 
 Create professional, modern presentations from Markdown using Slidev.
 
+> 📖 Official docs: https://sli.dev/guide/
+
 ## Installation Location
 
 Slidev is installed at: `/root/.openclaw/workspace/slidev-presentations/`
@@ -28,38 +30,35 @@ Ask the user for:
 - **Topic/theme** - What is the presentation about?
 - **Number of slides** - How many slides? (default: 6-10)
 - **Target audience** - Technical? Business? General?
-- **Special requirements** - Code examples? Diagrams? Specific style?
-- **Format needed** - PDF (default), HTML, or both?
+- **Language** - Russian or English? (affects font choice!)
+- **Style** - Light/dark? Accent color? Theme?
+- **Format needed** - PDF (default), PPTX, PNG, or HTML?
 
 ### 2. Create Presentation File
 
-Create a new `.md` file in `/root/.openclaw/workspace/slidev-presentations/` with a descriptive name (e.g., `vaib-coding-intro.md`, `pitch-deck-2026.md`).
+Create a new `.md` file in `/root/.openclaw/workspace/slidev-presentations/` with a descriptive name.
 
 **File structure:**
 ```markdown
 ---
 theme: default
-background: https://images.unsplash.com/photo-XXXX (optional)
-class: text-center
-highlighter: shiki
 title: Your Presentation Title
+highlighter: shiki
+colorSchema: light
+fonts:
+  sans: 'Roboto'
+  mono: 'Fira Code'
 ---
 
 # Title Slide
 
-Subtitle or tagline
+Subtitle
 
 ---
 
 # Slide 2
 
 Content here...
-
----
-
-# Slide 3
-
-More content...
 ```
 
 See `references/examples.md` for complete examples and `references/features.md` for advanced features.
@@ -73,7 +72,7 @@ cd /root/.openclaw/workspace/slidev-presentations && \
 npx slidev export <filename>.md --output <output-name>.pdf --timeout 180000
 ```
 
-**Important:** Use `--timeout 180000` to avoid timeout errors on large presentations.
+**Important:** Always use `--timeout 180000` to avoid timeout errors on large presentations.
 
 ### 4. Copy to Media and Send
 
@@ -82,6 +81,164 @@ cp /root/.openclaw/workspace/slidev-presentations/<output-name>.pdf /root/.openc
 ```
 
 Then use the `message` tool to send the file to the user.
+
+---
+
+## Themes
+
+Use a theme by adding to the headmatter:
+```yaml
+---
+theme: seriph
+---
+```
+
+**Official themes (install automatically on first use):**
+| Theme | Style |
+|-------|-------|
+| `default` | Clean, minimal, professional |
+| `seriph` | Elegant serif font, dark |
+| `apple-basic` | Apple-style minimalism |
+| `shibainu` | Playful and colorful |
+| `bricks` | Bold geometric |
+| `neversink` | Modern dark |
+| `penguin` | Academic, clean |
+
+**Install theme manually:**
+```bash
+npm install @slidev/theme-seriph
+```
+
+**Custom styling without a theme** — use `<style>` blocks and UnoCSS utility classes directly (most flexible, recommended for branded presentations).
+
+---
+
+## Fonts — Russian / Cyrillic Support
+
+Fonts are loaded automatically from Google Fonts. Configure in headmatter:
+
+```yaml
+---
+fonts:
+  sans: 'Roboto'          # main body text
+  serif: 'PT Serif'       # serif variant
+  mono: 'Fira Code'       # code blocks
+---
+```
+
+**Best Google Fonts for Russian/Cyrillic:**
+| Font | Style | Use for |
+|------|-------|---------|
+| `Roboto` | Modern sans-serif | Body, UI |
+| `Inter` | Clean geometric | Tech, business |
+| `Nunito` | Friendly rounded | Education, casual |
+| `PT Sans` | Russian-optimized | Any |
+| `PT Serif` | Russian-optimized serif | Classic, editorial |
+| `Montserrat` | Bold headings | Impact titles |
+| `Source Sans 3` | Neutral, readable | Long text |
+| `Raleway` | Elegant, thin | Design-heavy |
+
+**Custom font weights:**
+```yaml
+fonts:
+  sans: 'Roboto'
+  weights: '300,400,600,700,900'
+  italic: true
+```
+
+---
+
+## Layouts (built-in)
+
+Set layout per slide in frontmatter:
+```markdown
+---
+layout: center
+---
+```
+
+| Layout | Description |
+|--------|-------------|
+| `default` | Standard slide with title + content |
+| `cover` | Title/cover page |
+| `center` | Everything centered on screen |
+| `end` | Final slide |
+| `fact` | Big number/fact prominently displayed |
+| `full` | Uses all screen space, no padding |
+| `image-left` | Image left, content right |
+| `image-right` | Image right, content left |
+| `image` | Full-screen image |
+| `iframe-left` | Web page left, content right |
+| `iframe-right` | Web page right, content left |
+| `iframe` | Full-screen embedded web page |
+| `intro` | Presentation introduction |
+| `none` | No styling at all |
+| `quote` | Prominent quotation |
+| `section` | Section divider |
+| `statement` | Big bold statement |
+| `two-cols` | Two equal columns |
+| `two-cols-header` | Header spanning both columns, then two cols |
+
+**Two-cols example:**
+```markdown
+---
+layout: two-cols
+---
+
+# Left Column
+Left content
+
+::right::
+
+# Right Column
+Right content
+```
+
+---
+
+## Export Formats
+
+### PDF (recommended)
+```bash
+npx slidev export file.md --output out.pdf --timeout 180000
+```
+
+### PPTX (PowerPoint)
+```bash
+npx slidev export file.md --format pptx --output out.pptx --timeout 180000
+```
+> Note: slides are exported as images in PPTX, text won't be selectable.
+
+### PNG (individual slides)
+```bash
+npx slidev export file.md --format png --timeout 180000
+```
+
+### Dark mode export
+```bash
+npx slidev export file.md --dark --output out.pdf
+```
+
+### With click animations (multi-page)
+```bash
+npx slidev export file.md --with-clicks --output out.pdf
+```
+
+### Export specific slides
+```bash
+npx slidev export file.md --range 1,3-5,8 --output out.pdf
+```
+
+### Fixing timeout/render issues
+```bash
+# Increase wait time for slow slides
+npx slidev export file.md --timeout 300000 --wait 3000
+
+# If networkidle causes timeouts:
+npx slidev export file.md --wait-until domcontentloaded --timeout 180000
+```
+
+---
 
 ## Content Guidelines
 
@@ -93,125 +250,51 @@ Then use the `message` tool to send the file to the user.
 - **Code examples** - Use code blocks with language highlighting
 - **Conclusion** - Summary or CTA slide
 
-### Markdown Features
+### Styling Best Practices
 
-**Text formatting:**
-```markdown
-**Bold text**
-*Italic text*
-`Inline code`
-```
+- Use `<style>` block at the top for global CSS
+- Use inline `style=` for one-off adjustments
+- UnoCSS utility classes work everywhere (`flex`, `grid-cols-2`, `text-center`, etc.)
+- For pixel-perfect control — write raw CSS in `<style>` block
 
-**Lists:**
-```markdown
-- Bullet point
-- Another point
-  - Nested point
+### Russian Language Tips
 
-1. Numbered item
-2. Another item
-```
+1. Always use a **Cyrillic-compatible font** (Roboto, Inter, PT Sans, Nunito)
+2. Set `weights: '400,600,700,900'` for headings to look bold
+3. Avoid decorative/handwritten fonts — they often lack Cyrillic glyphs
+4. Test export early to catch font loading issues
 
-**Code blocks:**
-````markdown
-```python
-def hello():
-    print("Hello, World!")
-```
-````
-
-**Images:**
-```markdown
-![Alt text](https://example.com/image.jpg)
-```
-
-**Links:**
-```markdown
-[Link text](https://example.com)
-```
-
-### Animations
-
-Use `<v-clicks>` for progressive disclosure:
-
-```markdown
-<v-clicks>
-
-- First item appears
-- Then second
-- Then third
-
-</v-clicks>
-```
-
-### Layouts
-
-Common layouts:
-- `default` - Standard slide
-- `center` - Centered content
-- `two-cols` - Two columns
-- `statement` - Big statement slide
-- `end` - Closing slide
-
-Example:
-```markdown
 ---
-layout: center
----
-
-# Centered Content
-```
 
 ## Troubleshooting
 
-**Export fails:**
+**Export fails / blank PDF:**
 - Increase timeout: `--timeout 300000`
-- Check for syntax errors in Markdown
-- Ensure all image URLs are accessible
+- Add wait: `--wait 5000`
+- Try `--wait-until domcontentloaded`
+
+**Fonts not showing (Cyrillic broken):**
+- Confirm font name is exactly as on Google Fonts
+- Add `--wait 3000` to give fonts time to load
+- Try fallback: `fonts: { sans: 'Roboto', provider: 'google' }`
 
 **Slides look broken:**
-- Validate YAML frontmatter syntax
-- Check for unclosed code blocks
-- Ensure proper spacing around `---` slide separators
+- Validate YAML frontmatter syntax (no tabs, correct indentation)
+- Check for unclosed `<div>` or `<style>` tags
+- Ensure proper blank lines around `---` slide separators
+
+---
 
 ## References
 
 - **examples.md** - Complete presentation examples
-- **features.md** - Advanced features (diagrams, themes, custom layouts)
+- **features.md** - Advanced features: animations, diagrams, custom layouts, UnoCSS
+- **assets/basic-template.md** - Starter template
 
-## Best Practices
+## Official Resources
 
-1. **One idea per slide** - Don't overload with information
-2. **Visual hierarchy** - Use headings, bullets, spacing
-3. **Code highlighting** - Always specify language for code blocks
-4. **Progressive disclosure** - Use `<v-clicks>` for bullet points
-5. **Consistent style** - Use the same layout patterns throughout
-6. **Test export early** - Export a draft to catch issues early
-
-## Export Options
-
-**PDF (default):**
-```bash
-npx slidev export presentation.md --output presentation.pdf
-```
-
-**HTML (interactive):**
-```bash
-npx slidev build presentation.md
-# Output: dist/ folder with HTML files
-```
-
-**PNG (individual slides):**
-```bash
-npx slidev export presentation.md --format png
-```
-
-## When to Use This Skill
-
-Use this skill when the user asks for:
-- "Create a presentation about X"
-- "Make slides for Y"
-- "Build a pitch deck"
-- "Presentation on Z topic"
-- "Slides for my course/talk/demo"
-- Any request involving slides, decks, or presentations
+- Docs: https://sli.dev/guide/
+- Layouts: https://sli.dev/builtin/layouts
+- Themes: https://sli.dev/resources/theme-gallery
+- Fonts: https://sli.dev/custom/config-fonts
+- Export: https://sli.dev/guide/exporting

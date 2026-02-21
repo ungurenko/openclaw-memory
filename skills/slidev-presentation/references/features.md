@@ -1,14 +1,17 @@
 # Advanced Slidev Features
 
+> Source: https://sli.dev/guide/ (updated Feb 2026)
+
 ## Table of Contents
 1. Themes and Styling
-2. Layouts
-3. Animations and Transitions
-4. Diagrams (Mermaid)
-5. Interactive Elements
-6. Custom Components
-7. Speaker Notes
-8. Export Options
+2. Font Configuration (+ Russian/Cyrillic)
+3. Layouts (all built-in)
+4. Animations and Transitions
+5. Diagrams (Mermaid)
+6. Interactive Elements
+7. Custom Components
+8. Speaker Notes
+9. Export Options
 
 ---
 
@@ -16,17 +19,31 @@
 
 ### Available Themes
 
-**Built-in themes:**
-- `default` - Clean, professional
-- `seriph` - Elegant serif font
-- `apple-basic` - Apple-style minimalism
-- `shibainu` - Playful and colorful
+> Gallery: https://sli.dev/resources/theme-gallery
+
+**Official themes (auto-install on first use):**
+| Theme | Style |
+|-------|-------|
+| `default` | Clean, minimal, professional (recommended) |
+| `seriph` | Elegant serif font, dark |
+| `apple-basic` | Apple-style minimalism, light/dark |
+| `shibainu` | Playful, colorful |
+| `bricks` | Bold geometric |
+| `neversink` | Modern dark |
+| `penguin` | Academic, clean |
+| `the-unnamed` | Dark, vibrant |
+| `purplin` | Purple gradient |
 
 **Usage:**
 ```yaml
 ---
-theme: default
+theme: seriph
 ---
+```
+
+**Manual install:**
+```bash
+npm install @slidev/theme-seriph
 ```
 
 ### Custom Background
@@ -71,7 +88,55 @@ class: 'text-center text-white'
 
 ---
 
-## 2. Layouts
+## 2. Font Configuration (+ Russian/Cyrillic)
+
+Fonts load automatically from Google Fonts. Configure in headmatter:
+
+```yaml
+---
+fonts:
+  sans: 'Roboto'        # main body text
+  serif: 'PT Serif'     # serif variant
+  mono: 'Fira Code'     # code blocks
+  weights: '300,400,600,700,900'
+  italic: false
+  provider: google      # or: coollabs | none
+---
+```
+
+### Best fonts for Russian/Cyrillic
+
+| Font | Character | Use for |
+|------|-----------|---------|
+| `Roboto` | Modern, neutral | Body, UI, general |
+| `Inter` | Clean geometric | Tech, business |
+| `Nunito` | Rounded, friendly | Education, courses |
+| `PT Sans` | Russian-optimized | Any purpose |
+| `PT Serif` | Russian serif | Classic, editorial |
+| `Montserrat` | Bold, impactful | Big headings |
+| `Source Sans 3` | Neutral, legible | Long-text slides |
+| `Raleway` | Elegant, thin | Design-heavy |
+
+### Local fonts (skip Google Fonts CDN)
+
+```yaml
+---
+fonts:
+  sans: 'Helvetica Neue, Roboto'
+  local: Helvetica Neue   # won't be fetched from CDN
+---
+```
+
+### Tips for Cyrillic
+
+- Always specify weight `700` or `900` for bold headings to work
+- Avoid decorative/script fonts — most lack Cyrillic glyphs
+- Use `--wait 3000` on export if fonts appear as boxes/squares
+- PT Sans / PT Serif are specifically designed for Russian
+
+---
+
+## 3. Layouts (all built-in)
 
 ### Available Layouts
 
@@ -157,9 +222,97 @@ layout: end
 Contact info here
 ```
 
+**`fact`** - Big fact/number with prominence
+```markdown
+---
+layout: fact
 ---
 
-## 3. Animations and Transitions
+# 65%
+
+of developers use AI every week
+```
+
+**`full`** - Full screen, no padding
+```markdown
+---
+layout: full
+---
+
+<div class="h-full bg-gradient-to-r from-violet-500 to-purple-600 flex items-center justify-center">
+  <h1 class="text-white text-6xl">Full Screen</h1>
+</div>
+```
+
+**`image-left`** - Image left, content right
+```markdown
+---
+layout: image-left
+image: /path/to/image.jpg
+---
+
+# Content on Right
+
+Text goes here
+```
+
+**`image`** - Full-screen image
+```markdown
+---
+layout: image
+image: /path/to/image.jpg
+backgroundSize: cover   # or: contain
+---
+```
+
+**`iframe-left`** / **`iframe-right`** - Embed a web page
+```markdown
+---
+layout: iframe-left
+url: https://example.com
+---
+
+# Content on Right
+```
+
+**`section`** - Section separator
+```markdown
+---
+layout: section
+---
+
+# Part 2: Deep Dive
+```
+
+**`two-cols-header`** - Header + two columns
+```markdown
+---
+layout: two-cols-header
+---
+
+This spans both columns
+
+::left::
+
+# Left
+
+::right::
+
+# Right
+```
+
+**`none`** - No layout styling at all
+```markdown
+---
+layout: none
+---
+
+Custom unstyled slide
+```
+
+---
+
+## 4. Animations and Transitions
 
 ### Progressive Disclosure
 
@@ -232,7 +385,7 @@ transition: fade
 
 ---
 
-## 4. Diagrams (Mermaid)
+## 5. Diagrams (Mermaid)
 
 ### Flowcharts
 
@@ -299,7 +452,7 @@ gantt
 
 ---
 
-## 5. Interactive Elements
+## 6. Interactive Elements
 
 ### Buttons and Links
 
@@ -333,7 +486,7 @@ gantt
 
 ---
 
-## 6. Custom Components
+## 7. Custom Components
 
 ### Icons (Carbon Icons)
 
@@ -363,7 +516,7 @@ This is <mark>highlighted text</mark>
 
 ---
 
-## 7. Speaker Notes
+## 8. Speaker Notes
 
 Add notes visible only in presenter mode:
 
@@ -391,52 +544,64 @@ Remind yourself to:
 
 ---
 
-## 8. Export Options
+## 9. Export Options
 
-### PDF Export
+> Full docs: https://sli.dev/guide/exporting
 
-**Basic:**
+### PDF (default)
 ```bash
+# Basic
 npx slidev export presentation.md --output output.pdf
-```
 
-**With timeout (recommended):**
-```bash
+# Recommended (with timeout)
 npx slidev export presentation.md --output output.pdf --timeout 180000
-```
 
-**Dark mode:**
-```bash
+# Dark mode
 npx slidev export presentation.md --dark --output output.pdf
+
+# Export specific slide range
+npx slidev export presentation.md --range 1,3-5,8 --output output.pdf
 ```
 
-### HTML Export
-
-**Build static site:**
+### PPTX (PowerPoint)
 ```bash
-npx slidev build presentation.md
+npx slidev export presentation.md --format pptx --output output.pptx --timeout 180000
 ```
+> Slides are exported as images in PPTX — text won't be selectable.
 
-Output: `dist/` folder with HTML/CSS/JS
-
-**Deploy options:**
-- Upload to GitHub Pages
-- Deploy to Netlify/Vercel
-- Host on any static server
-
-### PNG Export
-
-**Export all slides as images:**
+### PNG (individual images)
 ```bash
-npx slidev export presentation.md --format png --output slides/
-```
+# All slides
+npx slidev export presentation.md --format png --timeout 180000
 
-Creates `slides/001.png`, `slides/002.png`, etc.
-
-**Single slide:**
-```bash
+# Single slide
 npx slidev export presentation.md --format png --range 1
 ```
+
+### With click animations
+```bash
+# Export each click step as separate page
+npx slidev export presentation.md --with-clicks --output output.pdf
+```
+
+### Fixing render issues
+```bash
+# Add extra wait before capturing each slide
+npx slidev export presentation.md --wait 5000 --timeout 300000
+
+# Change wait strategy (if networkidle causes timeouts)
+npx slidev export presentation.md --wait-until domcontentloaded
+
+# Options: networkidle (default) | domcontentloaded | load | none
+```
+
+### HTML (interactive, for hosting)
+```bash
+npx slidev build presentation.md
+# Output: dist/ folder
+```
+
+**Deploy options:** GitHub Pages, Netlify, Vercel, any static host.
 
 ---
 
