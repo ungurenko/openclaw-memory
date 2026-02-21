@@ -1,41 +1,43 @@
 /**
- * OpenClaw Gateway API helper
- * Вызывает Claude через локальный gateway — никаких внешних ключей не нужно
+ * Gemini API helper for content generation
  */
-const http = require('http');
 
-const GATEWAY_URL = 'http://localhost:18789';
-const GATEWAY_TOKEN = 'e7335a220d944443d539d5e3d222c906eeec1a1716ce7928';
-const MODEL = 'anthropic/claude-sonnet-4-6';
+const https = require('https');
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyAA0Gf7FI2laFkaJlmepTcHZPODwH8_2zs';
+const MODEL = 'gemini-2.0-flash';
 
 async function callClaude(prompt, maxTokens = 2000) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
-      model: MODEL,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: maxTokens
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        maxOutputTokens: maxTokens,
+        temperature: 0.8
+      }
     });
 
     const options = {
-      hostname: 'localhost',
-      port: 18789,
-      path: '/v1/chat/completions',
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GATEWAY_TOKEN}`,
         'Content-Length': Buffer.byteLength(body)
       }
     };
 
-    const req = http.request(options, (res) => {
+    const req = https.request(options, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          if (json.choices && json.choices[0] && json.choices[0].message) {
-            resolve(json.choices[0].message.content);
+          if (json.candidates && json.candidates[0] && json.candidates[0].content) {
+            const text = json.candidates[0].content.parts.map(p => p.text).join('');
+            resolve(text);
+          } else if (json.error) {
+            reject(new Error('Gemini error: ' + json.error.message));
           } else {
             reject(new Error('Unexpected response: ' + data.slice(0, 200)));
           }

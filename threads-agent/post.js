@@ -1,10 +1,15 @@
+/**
+ * Threads Poster — reply-chain approach
+ * Стратегия: часть 1 = новый тред, части 2+ = цепочка ответов
+ */
+
 const { chromium } = require('playwright');
 const path = require('path');
 const { execSync } = require('child_process');
 
 const COOKIES_FILE = path.join(__dirname, 'cookies.json');
+const PROFILE_URL = 'https://www.threads.net/@ungurenko';
 
-// Проверяем сессию перед публикацией
 function checkSessionSync() {
   try {
     execSync(`node ${path.join(__dirname, 'check-session.js')}`, { stdio: 'inherit', timeout: 60000 });
@@ -14,390 +19,350 @@ function checkSessionSync() {
   }
 }
 
-async function postToThreads(text) {
-  // Поддержка веток: строка или массив
-  const parts = Array.isArray(text) ? text : [text];
-  
-  if (parts.length === 0) {
-    throw new Error('Нет текста для публикации');
-  }
-  
-  console.log(`🚀 Запускаю браузер... Постим ${parts.length} частей`);
-  
-  const browser = await chromium.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
 
-  const context = await browser.newContext({
+function makeBrowser() {
+  return chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+}
+
+function makeContext(browser) {
+  return browser.newContext({
     storageState: COOKIES_FILE,
     userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     viewport: { width: 1280, height: 800 }
   });
+}
 
+// Нажать кнопку публикации (Post / Reply)
+async function clickSubmitButton(page) {
+  // 1) getByRole
+  for (const name of ['Post', 'Reply']) {
+    try {
+      const btn = page.getByRole('button', { name: new RegExp(`^${name}$`, 'i') }).last();
+      if (await btn.isVisible({ timeout: 3000 })) {
+        await btn.click();
+        console.log(`✅ Кликнул "${name}" через getByRole`);
+        return;
+      }
+    } catch (e) {}
+  }
+
+  // 2) Перебор всех кнопок
+  const allBtns = await page.$$('button');
+  for (const btn of allBtns) {
+    const txt = await btn.innerText().catch(() => '');
+    if (txt.trim() === 'Post' || txt.trim() === 'Reply') {
+      if (await btn.isVisible().catch(() => false)) {
+        await btn.click();
+        console.log(`✅ Кликнул "${txt.trim()}" через перебор`);
+        return;
+      }
+    }
+  }
+
+  await page.screenshot({ path: '/tmp/threads-submit-fail.png' });
+  throw new Error('Кнопка публикации не найдена (скрин: /tmp/threads-submit-fail.png)');
+}
+
+// Опубликовать первую часть как новый тред
+async function postNewThread(page, text) {
+  console.log('📝 Открываю главную...');
+  await page.goto('https://www.threads.net/', { waitUntil: 'networkidle', timeout: 30000 });
+  await sleep(2000);
+  await page.screenshot({ path: '/tmp/threads-1-home.png' });
+
+  // Открыть compose
+  const composeSelectors = [
+    '[aria-label="New thread"]',
+    '[aria-label="Create"]',
+    'a[href="/compose"]',
+    '[data-testid="new-thread-button"]',
+  ];
+
+  let clicked = false;
+  for (const sel of composeSelectors) {
+    try {
+      const el = await page.$(sel);
+      if (el) {
+        await el.click();
+        clicked = true;
+        console.log(`✅ Открыл compose: ${sel}`);
+        break;
+      }
+    } catch (e) {}
+  }
+
+  if (!clicked) {
+    try {
+      await page.getByRole('link', { name: /new thread|compose/i }).first().click();
+      clicked = true;
+    } catch (e) {}
+  }
+
+  if (!clicked) {
+    await page.screenshot({ path: '/tmp/threads-compose-fail.png' });
+    throw new Error('Не нашёл кнопку создания поста (скрин: /tmp/threads-compose-fail.png)');
+  }
+
+  await sleep(2000);
+  await page.screenshot({ path: '/tmp/threads-2-compose.png' });
+
+  // Ввести текст
+  const textarea = await page.waitForSelector('div[contenteditable="true"]', { timeout: 10000 });
+  await textarea.click();
+  await textarea.fill(text);
+  await sleep(1000);
+  await page.screenshot({ path: '/tmp/threads-3-typed.png' });
+
+  // Опубликовать
+  await clickSubmitButton(page);
+  await sleep(5000);
+  await page.screenshot({ path: '/tmp/threads-4-posted.png' });
+  console.log('✅ Часть 1 опубликована');
+}
+
+// Получить URL последнего поста из профиля
+async function getLatestPostUrl(page) {
+  console.log('🔍 Ищу последний пост в профиле...');
+  await page.goto(PROFILE_URL, { waitUntil: 'networkidle', timeout: 30000 });
+  await sleep(2000);
+  await page.screenshot({ path: '/tmp/threads-5-profile.png' });
+
+  const link = await page.$('a[href*="/post/"]');
+  if (!link) throw new Error('Посты в профиле не найдены');
+
+  const href = await link.getAttribute('href');
+  const url = href.startsWith('http') ? href : `https://www.threads.net${href}`;
+  console.log(`✅ URL первого поста: ${url}`);
+  return url;
+}
+
+// Проверить что страница жива
+async function isPageAlive(page) {
+  try {
+    await page.evaluate(() => 1);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Ответить на пост по URL, вернуть URL нового ответа
+async function replyToPost(page, postUrl, text, partNum) {
+  console.log(`💬 Часть ${partNum}: отвечаю на ${postUrl}`);
+  
+  // Проверка что страница жива
+  if (!await isPageAlive(page)) {
+    throw new Error('Браузер был закрыт до публикации части ' + partNum);
+  }
+  
+  await page.goto(postUrl, { waitUntil: 'networkidle', timeout: 30000 });
+  await sleep(3000); // Увеличил задержку
+  await page.screenshot({ path: `/tmp/threads-reply-${partNum}-a.png` });
+
+  // Собрать все ссылки на посты ДО ответа (с обработкой ошибок)
+  let linksBefore = [];
+  try {
+    linksBefore = await page.$$eval(
+      'a[href*="/post/"]',
+      (els, base) => els.map(el => {
+        const h = el.getAttribute('href');
+        return h.startsWith('http') ? h : base + h;
+      }),
+      'https://www.threads.net'
+    );
+  } catch (e) {
+    console.log(`⚠️ Не удалось получить ссылки до: ${e.message}`);
+  }
+
+  // Найти кнопки Reply — нажать на ПОСЛЕДНЮЮ (для последнего поста в цепочке)
+  let replyClicked = false;
+
+  // Попытка 1: aria-label
+  const replyBtnsByAria = await page.$$('[aria-label*="Reply"], [aria-label*="reply"]');
+  if (replyBtnsByAria.length > 0) {
+    await replyBtnsByAria[replyBtnsByAria.length - 1].click();
+    replyClicked = true;
+    console.log(`✅ Reply через aria-label (${replyBtnsByAria.length} штук)`);
+  }
+
+  // Попытка 2: перебор кнопок/ролей
+  if (!replyClicked) {
+    const allBtns = await page.$$('button, [role="button"]');
+    const candidates = [];
+    for (const btn of allBtns) {
+      const txt = await btn.innerText().catch(() => '');
+      const aria = await btn.getAttribute('aria-label').catch(() => '');
+      if (txt.toLowerCase().includes('reply') || aria.toLowerCase().includes('reply')) {
+        candidates.push(btn);
+      }
+    }
+    if (candidates.length > 0) {
+      await candidates[candidates.length - 1].click();
+      replyClicked = true;
+      console.log(`✅ Reply через перебор (${candidates.length} кандидатов)`);
+    }
+  }
+
+  if (!replyClicked) {
+    await page.screenshot({ path: `/tmp/threads-reply-${partNum}-fail.png` });
+    throw new Error(`Не нашёл кнопку Reply для части ${partNum}`);
+  }
+
+  await sleep(1500);
+  await page.screenshot({ path: `/tmp/threads-reply-${partNum}-b.png` });
+
+  // Ввести текст ответа
+  const textarea = await page.waitForSelector('div[contenteditable="true"]', { timeout: 10000 });
+  await textarea.click();
+  await textarea.fill(text);
+  await sleep(1000);
+
+  // Опубликовать
+  await clickSubmitButton(page);
+  await sleep(5000);
+  await page.screenshot({ path: `/tmp/threads-reply-${partNum}-c.png` });
+  console.log(`✅ Часть ${partNum} опубликована`);
+
+  // Найти URL нового ответа
+  await sleep(2000); // Дать время на обработку
+  
+  // Проверка что страница жива
+  if (!await isPageAlive(page)) {
+    console.log(`⚠️ Браузер закрыт после публикации части ${partNum}, продолжаю с тем же URL`);
+    return postUrl.split('?')[0].replace(/\/$/, '');
+  }
+  
+  try {
+    await page.goto(postUrl, { waitUntil: 'networkidle', timeout: 30000 });
+  } catch (e) {
+    console.log(`⚠️ Навигация не удалась: ${e.message}, продолжаю с тем же URL`);
+    return postUrl.split('?')[0].replace(/\/$/, '');
+  }
+  await sleep(2000);
+
+  let linksAfter = [];
+  try {
+    linksAfter = await page.$$eval(
+      'a[href*="/post/"]',
+      (els, base) => els.map(el => {
+        const h = el.getAttribute('href');
+        return h.startsWith('http') ? h : base + h;
+      }),
+      'https://www.threads.net'
+    );
+  } catch (e) {
+    console.log(`⚠️ Не удалось получить ссылки после: ${e.message}`);
+  }
+
+  // Ищем новые ссылки (не было до), очищаем от query params
+  const cleanUrl = (u) => u.split('?')[0].replace(/\/$/, '');
+
+  const newLinks = linksAfter
+    .map(cleanUrl)
+    .filter(l => !linksBefore.map(cleanUrl).includes(l) && l !== cleanUrl(postUrl));
+
+  if (newLinks.length > 0) {
+    console.log(`✅ URL нового ответа: ${newLinks[0]}`);
+    return newLinks[0];
+  }
+
+  // Fallback: возвращаем тот же URL треда — при следующем открытии 
+  // кликнем по ПОСЛЕДНЕЙ кнопке Reply и попадём на нужный пост
+  const fallbackUrl = cleanUrl(postUrl);
+  console.log(`⚠️ Fallback URL (тот же тред): ${fallbackUrl}`);
+  return fallbackUrl;
+}
+
+// ===== ОСНОВНАЯ ФУНКЦИЯ =====
+async function postToThreads(text) {
+  const parts = Array.isArray(text) ? text : [text];
+  if (parts.length === 0) throw new Error('Нет текста для публикации');
+
+  console.log(`🚀 Публикую ${parts.length} частей в Threads...`);
+
+  const browser = await makeBrowser();
+  const context = await makeContext(browser);
   const page = await context.newPage();
 
   try {
-    console.log('📱 Открываю Threads...');
-    await page.goto('https://www.threads.net/', { waitUntil: 'networkidle', timeout: 30000 });
-    
-    await page.screenshot({ path: '/tmp/threads-1-loaded.png' });
-    console.log('✅ Страница загружена, скрин: /tmp/threads-1-loaded.png');
+    // Шаг 1: опубликовать первую часть как новый тред
+    await postNewThread(page, parts[0]);
 
-    // Ищем кнопку "New thread" или поле для ввода
-    console.log('🔍 Ищу кнопку создания поста...');
-    
-    // Пробуем разные селекторы для кнопки создания поста
-    const selectors = [
-      '[aria-label="New thread"]',
-      '[aria-label="Create"]',
-      'a[href="/compose"]',
-      'svg[aria-label="New post"]',
-      '[data-testid="new-thread-button"]',
-    ];
+    if (parts.length === 1) {
+      console.log('🎉 Пост опубликован!');
+      return;
+    }
 
-    let clicked = false;
-    for (const selector of selectors) {
+    // Шаг 2: найти URL первого поста
+    const firstPostUrl = await getLatestPostUrl(page);
+
+    // Шаг 3: цепочка ответов
+    let currentUrl = firstPostUrl;
+    for (let i = 1; i < parts.length; i++) {
       try {
-        const el = await page.$(selector);
-        if (el) {
-          await el.click();
-          clicked = true;
-          console.log(`✅ Кликнул по: ${selector}`);
-          break;
-        }
-      } catch (e) {}
-    }
-
-    if (!clicked) {
-      // Попробуем найти по тексту
-      try {
-        const newThreadBtn = await page.getByRole('link', { name: /new thread|compose/i }).first();
-        if (newThreadBtn) {
-          await newThreadBtn.click();
-          clicked = true;
-          console.log('✅ Кликнул по кнопке через role');
-        }
-      } catch (e) {}
-    }
-
-    await page.waitForTimeout(2000);
-    await page.screenshot({ path: '/tmp/threads-2-compose.png' });
-    console.log('📸 Скрин после клика: /tmp/threads-2-compose.png');
-
-    // Публикуем каждую часть ветки
-    for (let i = 0; i < parts.length; i++) {
-      const partText = parts[i];
-      console.log(`⌨️ Ввожу часть ${i + 1}/${parts.length} (${partText.length} символов)...`);
-      
-      // Ищем последнее поле contenteditable
-      const contentEditable = await page.$('div[contenteditable="true"]');
-      if (!contentEditable) {
-        throw new Error(`Не нашёл поле для ввода текста (часть ${i + 1})`);
-      }
-      
-      await contentEditable.click();
-      await contentEditable.fill(partText);
-      await page.waitForTimeout(500);
-      
-      await page.screenshot({ path: `/tmp/threads-3-part-${i + 1}.png` });
-      
-      // Если это не последняя часть — добавляем к ветке
-      if (i < parts.length - 1) {
-        console.log('➕ Кликаю "Add to thread"...');
-        await page.waitForTimeout(2000); // больше времени на рендер
-        
-        // Ищем кнопку Add to thread - много вариантов
-        let addToThreadClicked = false;
-        
-        // Сначала пробуем через getByRole
-        try {
-          const addBtn = page.getByRole('button', { name: /add to thread/i });
-          if (await addBtn.isVisible({ timeout: 2000 })) {
-            await addBtn.click();
-            addToThreadClicked = true;
-            console.log('✅ Кликнул "Add to thread" через getByRole');
-          }
-        } catch (e) {}
-        
-        if (!addToThreadClicked) {
-          const addSelectors = [
-            'button:has-text("Add to thread")',
-            '[aria-label="Add to thread"]',
-            'text=Add to thread',
-            'a:has-text("Add to thread")',
-            '[data-testid="add-to-thread"]',
-            'div[role="button"]:has-text("Add to thread")',
-          ];
-          
-          for (const selector of addSelectors) {
-            try {
-              const btn = await page.$(selector);
-              if (btn) {
-                const isVisible = await btn.isVisible();
-                if (isVisible) {
-                  await btn.click();
-                  addToThreadClicked = true;
-                  console.log(`✅ Кликнул "Add to thread" по: ${selector}`);
-                  break;
-                }
-              }
-            } catch (e) {}
-          }
-        }
-        
-        if (!addToThreadClicked) {
-          // Пробуем найти по тексту среди всех кликабельных элементов
-          try {
-            const allBtns = await page.$$('button, a, [role="button"], div[onclick]');
-            for (const btn of allBtns) {
-              const text = await btn.innerText().catch(() => '');
-              if (text.toLowerCase().includes('add to thread')) {
-                await btn.click({ force: true });
-                addToThreadClicked = true;
-                console.log('✅ Кликнул "Add to thread" по перебору элементов');
-                break;
-              }
-            }
-          } catch (e) {}
-        }
-        
-        if (!addToThreadClicked) {
-          // Последняя попытка - Playwright locator
-          try {
-            await page.locator('text=/add to thread/i').first().click({ timeout: 3000 });
-            addToThreadClicked = true;
-            console.log('✅ Кликнул "Add to thread" через locator');
-          } catch (e) {}
-        }
-        
-        if (!addToThreadClicked) {
-          await page.screenshot({ path: '/tmp/threads-add-error.png' });
-          console.log('📸 Скрин ошибки Add to thread: /tmp/threads-add-error.png');
-          throw new Error('Не нашёл кнопку "Add to thread"');
-        }
-        
-        await page.waitForTimeout(1000);
-      }
-    }
-    
-    await page.screenshot({ path: '/tmp/threads-4-ready.png' });
-    console.log('📸 Скрин перед публикацией: /tmp/threads-4-ready.png');
-
-    // Ищем кнопку публикации
-    console.log('🔍 Ищу кнопку публикации...');
-    
-    let publishBtn = null;
-    
-    // Пробуем через getByRole в диалоге
-    try {
-      publishBtn = page.getByRole('button', { name: /^Post$/i }).last();
-      const isVisible = await publishBtn.isVisible();
-      if (isVisible) {
-        console.log('✅ Нашёл кнопку Post через getByRole');
-      } else {
-        publishBtn = null;
-      }
-    } catch (e) {}
-
-    if (!publishBtn) {
-      // Ищем в модальном окне
-      const publishSelectors = [
-        '[role="dialog"] button',
-        'div[class*="modal"] button',
-        'div[class*="sheet"] button',
-      ];
-      for (const selector of publishSelectors) {
-        try {
-          const buttons = await page.$$(selector);
-          for (const btn of buttons) {
-            const txt = await btn.innerText().catch(() => '');
-            if (txt.trim() === 'Post') {
-              publishBtn = btn;
-              console.log(`✅ Нашёл кнопку Post в модальном окне`);
-              break;
-            }
-          }
-          if (publishBtn) break;
-        } catch (e) {}
+        currentUrl = await replyToPost(page, currentUrl, parts[i], i + 1);
+        await sleep(3000); // Увеличил задержку между частями
+      } catch (e) {
+        console.error(`❌ Ошибка в части ${i + 1}: ${e.message}`);
+        // Пробуем продолжить с тем же URL
       }
     }
 
-    if (!publishBtn) {
-      // Последняя попытка — все кнопки на странице
-      const allButtons = await page.$$('button');
-      for (const btn of allButtons) {
-        const txt = await btn.innerText().catch(() => '');
-        if (txt.trim() === 'Post') {
-          publishBtn = btn;
-          console.log('✅ Нашёл кнопку Post среди всех кнопок');
-          break;
-        }
-      }
-    }
-
-    if (!publishBtn) {
-      throw new Error('Не нашёл кнопку публикации');
-    }
-
-    // Публикуем!
-    console.log('📤 Публикую пост...');
-    await publishBtn.click();
-    await page.waitForTimeout(3000);
-
-    await page.screenshot({ path: '/tmp/threads-5-published.png' });
-    console.log('✅ Готово! Скрин: /tmp/threads-5-published.png');
-    console.log('🎉 Пост опубликован!');
-
-    return page; // возвращаем page для возможных ответов
+    console.log('🎉 Все части опубликованы!');
 
   } catch (error) {
     console.error('❌ Ошибка:', error.message);
-    await page.screenshot({ path: '/tmp/threads-error.png' });
-    console.log('📸 Скрин ошибки: /tmp/threads-error.png');
+    await page.screenshot({ path: '/tmp/threads-fatal-error.png' }).catch(() => {});
     throw error;
   } finally {
     await browser.close();
   }
 }
 
-// Экспортируем для использования из других модулей
-module.exports = { postToThreads };
-
-// Ответ на последний пост в профиле
+// ===== ОТВЕТ НА ПОСЛЕДНИЙ ПОСТ В ПРОФИЛЕ =====
 async function replyToLatestPost(text) {
   console.log('💬 Отвечаю на последний пост...');
 
-  const browser = await chromium.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
-
-  const context = await browser.newContext({
-    storageState: COOKIES_FILE,
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-    viewport: { width: 1280, height: 800 }
-  });
-
+  const browser = await makeBrowser();
+  const context = await makeContext(browser);
   const page = await context.newPage();
 
   try {
-    // Открываем профиль
-    console.log('📱 Открываю профиль...');
-    await page.goto('https://www.threads.net/@ungurenko', { waitUntil: 'networkidle', timeout: 30000 });
-    await page.waitForTimeout(2000);
+    await page.goto(PROFILE_URL, { waitUntil: 'networkidle', timeout: 30000 });
+    await sleep(2000);
 
-    // Кликаем на первый пост
-    console.log('🔍 Ищу последний пост...');
     const firstPost = await page.$('a[href*="/post/"]');
-    if (!firstPost) {
-      throw new Error('Не нашёл посты в профиле');
-    }
-    await firstPost.click();
-    await page.waitForTimeout(2000);
+    if (!firstPost) throw new Error('Не нашёл посты в профиле');
 
-    // Ищем кнопку Reply
-    console.log('💬 Ищу кнопку Reply...');
-    const replySelectors = [
-      '[aria-label="Reply"]',
-      'button:has-text("Reply")',
-      '[data-testid="reply-button"]',
-    ];
+    const href = await firstPost.getAttribute('href');
+    const postUrl = href.startsWith('http') ? href : `https://www.threads.net${href}`;
 
-    let replyBtn = null;
-    for (const selector of replySelectors) {
-      try {
-        const btn = await page.$(selector);
-        if (btn && await btn.isVisible()) {
-          replyBtn = btn;
-          break;
-        }
-      } catch (e) {}
-    }
+    await page.goto(postUrl, { waitUntil: 'networkidle', timeout: 30000 });
+    await sleep(2000);
 
-    if (!replyBtn) {
-      // Пробуем найти по тексту
-      const allBtns = await page.$$('button, [role="button"]');
-      for (const btn of allBtns) {
-        const btnText = await btn.innerText().catch(() => '');
-        if (btnText.toLowerCase().includes('reply')) {
-          replyBtn = btn;
-          break;
-        }
-      }
-    }
-
-    if (!replyBtn) {
+    // Кликаем Reply (первая кнопка — на главном посте)
+    const replyBtns = await page.$$('[aria-label*="Reply"], [aria-label*="reply"]');
+    if (replyBtns.length > 0) {
+      await replyBtns[0].click();
+    } else {
       throw new Error('Не нашёл кнопку Reply');
     }
+    await sleep(1500);
 
-    await replyBtn.click();
-    await page.waitForTimeout(1500);
-    console.log('✅ Кликнул Reply');
-
-    // Вводим текст
-    const textarea = await page.$('[contenteditable="true"]');
-    if (!textarea) {
-      throw new Error('Не нашёл поле ввода');
-    }
-    await textarea.click();
+    const textarea = await page.waitForSelector('div[contenteditable="true"]', { timeout: 10000 });
     await textarea.fill(text);
-    await page.waitForTimeout(1000);
-    console.log('⌨️ Ввёл текст ответа');
-    await page.waitForTimeout(1000);
+    await sleep(1000);
 
-    // Публикуем - ищем кнопку Post или Reply в диалоге
-    console.log('🔍 Ищу кнопку публикации...');
-
-    let published = false;
-
-    // Пробуем getByRole
-    try {
-      const postBtn = page.getByRole('button', { name: /^Post$/i }).last();
-      if (await postBtn.isVisible({ timeout: 3000 })) {
-        await postBtn.click();
-        published = true;
-        console.log('✅ Кликнул Post через getByRole');
-      }
-    } catch (e) {}
-
-    if (!published) {
-      // Ищем среди всех кнопок
-      const allBtns = await page.$$('button');
-      for (const btn of allBtns) {
-        const btnText = await btn.innerText().catch(() => '');
-        if (btnText.trim() === 'Post' || btnText.trim() === 'Reply') {
-          const isVisible = await btn.isVisible().catch(() => false);
-          if (isVisible) {
-            await btn.click();
-            published = true;
-            console.log(`✅ Кликнул "${btnText.trim()}"`);
-            break;
-          }
-        }
-      }
-    }
-
-    if (!published) {
-      // Пробуем найти по aria-label
-      const ariaBtn = await page.$('[aria-label="Post"], [aria-label="Reply"]');
-      if (ariaBtn) {
-        await ariaBtn.click();
-        published = true;
-        console.log('✅ Кликнул по aria-label');
-      }
-    }
-
-    if (!published) {
-      throw new Error('Не нашёл кнопку публикации после ввода текста');
-    }
-
-    await page.waitForTimeout(2000);
+    await clickSubmitButton(page);
+    await sleep(3000);
     console.log('✅ Ответ опубликован!');
 
   } catch (error) {
     console.error('❌ Ошибка:', error.message);
-    await page.screenshot({ path: '/tmp/threads-reply-error.png' });
+    await page.screenshot({ path: '/tmp/threads-reply-error.png' }).catch(() => {});
     throw error;
   } finally {
     await browser.close();
@@ -406,56 +371,40 @@ async function replyToLatestPost(text) {
 
 module.exports = { postToThreads, replyToLatestPost };
 
-// Если запущен напрямую (CLI)
+// ===== CLI =====
 if (require.main === module) {
   async function main() {
     const args = process.argv.slice(2);
 
-    // Проверяем режим reply
     if (args[0] === 'reply') {
       const text = args.slice(1).join(' ');
       if (!text) {
-        console.error('❌ Укажи текст ответа: node post.js reply "Текст"');
+        console.error('❌ Укажи текст: node post.js reply "Текст"');
         process.exit(1);
       }
-
-      console.log('🔍 Проверяю сессию...');
-      const sessionOk = checkSessionSync();
-      if (!sessionOk) {
-        console.error('❌ Сессия мертва.');
-        process.exit(1);
-      }
-
+      if (!checkSessionSync()) { console.error('❌ Сессия мертва'); process.exit(1); }
       await replyToLatestPost(text);
       return;
     }
 
-    // Обычный режим публикации
     let input;
-    const fromFileIdx = process.argv.indexOf('--from-file');
-    if (fromFileIdx !== -1 && process.argv[fromFileIdx + 1]) {
-      const filePath = process.argv[fromFileIdx + 1];
-      const raw = require('fs').readFileSync(filePath, 'utf8');
-      input = JSON.parse(raw);
-      console.log(`📂 Загружено ${input.length} частей из ${filePath}`);
-    } else if (process.argv[2]) {
-      input = process.argv[2];
+    const ffIdx = process.argv.indexOf('--from-file');
+    if (ffIdx !== -1 && process.argv[ffIdx + 1]) {
+      input = JSON.parse(require('fs').readFileSync(process.argv[ffIdx + 1], 'utf8'));
+      console.log(`📂 Загружено ${input.length} частей из ${process.argv[ffIdx + 1]}`);
+    } else if (args[0]) {
+      input = args[0];
     } else {
-      console.error('❌ Использование:');
-      console.error('   node post.js "Текст"           — опубликовать пост');
-      console.error('   node post.js reply "Текст"     — ответить на последний пост');
-      console.error('   node post.js --from-file file.json — опубликовать ветку');
+      console.error('❌ Использование:\n  node post.js "Текст"\n  node post.js reply "Текст"\n  node post.js --from-file file.json');
       process.exit(1);
     }
 
-    console.log('🔍 Проверяю сессию перед публикацией...');
-    const sessionOk = checkSessionSync();
-    if (!sessionOk) {
-      console.error('❌ Сессия мертва. Уведомление отправлено в Telegram. Публикация отменена.');
-      process.exit(1);
-    }
-
+    if (!checkSessionSync()) { console.error('❌ Сессия мертва'); process.exit(1); }
     await postToThreads(input);
   }
-  main().catch(console.error);
+
+  main().catch(err => {
+    console.error('❌ Fatal:', err.message);
+    process.exit(1);
+  });
 }

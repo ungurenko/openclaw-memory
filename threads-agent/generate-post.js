@@ -208,13 +208,17 @@ async function main() {
   try {
     let parts;
     
-    if (ANTHROPIC_API_KEY) {
-      // Генерируем пост через API
+    // Генерируем пост через OpenClaw gateway (api.js)
+    try {
       console.log('🤖 Генерирую пост через Claude API...');
       const rawContent = await generatePost(topic);
       parts = parsePostContent(rawContent);
-    } else {
-      console.log('⚠️ ANTHROPIC_API_KEY не установлен, использую тестовый пост');
+      if (parts.length < 3) {
+        console.log('⚠️ Мало частей в ответе, использую тестовый пост');
+        parts = getTestPost(topic);
+      }
+    } catch (e) {
+      console.log(`⚠️ Ошибка генерации (${e.message}), использую тестовый пост`);
       parts = getTestPost(topic);
     }
     
